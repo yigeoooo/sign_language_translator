@@ -16,7 +16,7 @@ Healer 是一款基于人工智能的手语翻译系统，旨在消除听障人�
 - **leapmotion2环境配置：**  
   * 参考官方Python重构配置环境，由于leapmotion的SDK是基于C语言进行二次开发，所以用Python时需要特殊配置环境。
   * 具体参考Github官方项目。[leapc-python-bindings](https://github.com/ultraleap/leapc-python-bindings)。
-  * 当根据流程配置好环境，运行项目中visualiser.py，看到如下效果，则证明环境配置成功。（前提是拥有leapmotion2设备，并且已经连接）
+  * 当根据流程配置好环境，运行项目中visualiser.py，看到如下效果，则证明环境配置成功。（前提是拥有leapmotion2设备，并且已经连接）</br>
   ![图片](/tests/video.gif "leapmotion2测试")
 
 
