@@ -8,34 +8,16 @@ Healer 是一款基于人工智能的手语翻译系统，旨在消除听障人�
 
 ---
 
-##  Key Features | 核心功能
+##  环境配置
 
-- **Real-time Sign Language Recognition**  
-  支持实时手语识别，准确捕捉连续手势动作
 
-- **Instant Text & Voice Output**  
-  可将识别内容输出为文本或语音，提升沟通效率
+- **Python版本：  3.8（必须）**
 
-- **Bilingual Translation (English & Chinese)**  
-  支持中英文双语翻译，满足不同语言环境需求
+- **leapmotion2环境配置：**  
+  * 参考官方Python重构配置环境，由于leapmotion的SDK是基于C语言进行二次开发，所以用Python时需要特殊配置环境。
+  * 具体参考Github官方项目。[leapc-python-bindings](https://github.com/ultraleap/leapc-python-bindings)。
+  * 当根据流程配置好环境，运行项目中visualiser.py，看到如下效果，则证明环境配置成功。（前提是拥有leapmotion2设备，并且已经连接）
+  ![图片](/tests/video.gif "leapmotion2测试")
+  * 
 
-- **Mobile & Desktop Compatibility**  
-  适用于手机与电脑终端，便于多场景部署使用
 
-- **Adaptive Learning**  
-  可根据用户习惯进行自适应学习，提升个性化翻译体验
-
----
-
-##  Target Scenarios | 应用场景
-
-- 特教学校教学辅助 | Special education support  
-- 医疗、政务服务窗口 | Healthcare & public service kiosks  
-- 商业及多语会议翻译 | Business & multilingual meetings  
-- 家庭及社交沟通 | Home & social interaction
-
----
-
-更多内容如系统架构、技术细节、部署说明将在后续章节中陆续补充。
-
-More content such as system architecture, technical details, and deployment instructions will be added in subsequent chapters.
