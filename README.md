@@ -1,69 +1,68 @@
-# 手语翻译系统
+# Sign Language Translation System
 
-基于Leap Motion 2的手语识别与翻译系统，支持中英文双语翻译和语音播报。
+A sign language recognition and translation system based on Leap Motion 2, supporting bilingual translation (Chinese-English) and voice output.
 
-## 项目简介
+## Project Overview
 
-本项目是一个完整的手语识别训练框架，从数据收集、预处理、模型训练到实时推理的端到端解决方案。系统能够：
+This project is a complete sign language recognition training framework that provides an end-to-end solution from data collection, preprocessing, model training to real-time inference. The system can:
 
-- **数据收集**: 使用Leap Motion设备收集手语数据
-- **数据预处理**: 特征提取、数据清洗、标准化
-- **模型训练**: 支持多种深度学习模型架构
-- **实时推理**: 实时手语识别与中英文翻译
+- **Data Collection**: Collect sign language data using Leap Motion device
+- **Data Preprocessing**: Feature extraction, data cleaning, and standardization
+- **Model Training**: Support multiple deep learning model architectures
+- **Real-time Inference**: Real-time sign language recognition and Chinese-English translation
 
 ---
 
-##  环境配置
+## Environment Setup
 
+- **Python Version: 3.8 (Required)**
 
-- **Python版本：  3.8（必须）**
+- **Leap Motion 2 Environment Configuration:**  
+  * Refer to the official Python reconstruction configuration environment. Since Leap Motion's SDK is based on C language for secondary development, Python requires special environment configuration.
+  * Refer to the official Github project: [leapc-python-bindings](https://github.com/ultraleap/leapc-python-bindings).
+  * When the environment is configured according to the process, run visualiser.py in the project. If you see the following effect, it proves that the environment configuration is successful. (Prerequisites: having a Leap Motion 2 device and it is connected)</br>
+  ![Image](/tests/video.gif "Leap Motion 2 Test")
 
-- **leapmotion2环境配置：**  
-  * 参考官方Python重构配置环境，由于leapmotion的SDK是基于C语言进行二次开发，所以用Python时需要特殊配置环境。
-  * 具体参考Github官方项目。[leapc-python-bindings](https://github.com/ultraleap/leapc-python-bindings)。
-  * 当根据流程配置好环境，运行项目中visualiser.py，看到如下效果，则证明环境配置成功。（前提是拥有leapmotion2设备，并且已经连接）</br>
-  ![图片](/tests/video.gif "leapmotion2测试")
-
-## 项目目录结构
+## Project Directory Structure
 
 ```
-tests/                           # 测试类文档
+tests/                           # Test documents
 train/
-├── data_collector.py           # 数据收集器
-├── data_preprocessor.py        # 数据预处理器
-├── model_definition.py         # 模型定义
-├── enhanced_trainer.py         # 增强训练器
-├── trainer.py                  # 训练器
-├── inference.py                # 推理器
-└── data/                       # 数据目录
-    ├── raw/                    # 原始数据文件
+├── data_collector.py           # Data collector
+├── data_preprocessor.py        # Data preprocessor
+├── model_definition.py         # Model definitions
+├── enhanced_trainer.py         # Enhanced trainer
+├── trainer.py                  # Trainer
+├── inference.py                # Inference engine
+└── data/                       # Data directory
+    ├── raw/                    # Raw data files
     │   └── ...
-    ├── annotations/            # 标注文件
+    ├── annotations/            # Annotation files
     │   └── ...
-    ├── processed/              # 处理后的数据
+    ├── processed/              # Processed data
     │   └── ...
-    ├── models/                 # 训练好的模型
+    ├── models/                 # Trained models
     │   └── ...
-    └── gesture_labels.json     # 手势标签配置
+    └── gesture_labels.json     # Gesture label configuration
 ```
 
-## 快速开始
+## Quick Start
 
-### 1. 数据收集
+### 1. Data Collection
 
-首先收集手语数据：
+First, collect sign language data:
 
 ```bash
 cd train
 python data_collector.py
 ```
 
-**操作说明：**
-- 按数字键（0-9）开始录制对应手势
-- 按空格键停止录制
-- 按q键退出
+**Operation Instructions:**
+- Press number keys (0-9) to start recording corresponding gestures
+- Press spacebar to stop recording
+- Press 'q' to quit
 
-**默认手势标签：**
+**Default Gesture Labels:**
 - 1: 你好 (hello)
 - 2: 谢谢 (thank you)
 - 3: 再见 (goodbye)
@@ -75,164 +74,164 @@ python data_collector.py
 - 9: 家 (home)
 - 0: 水 (water)
 
-### 2. 数据预处理
+### 2. Data Preprocessing
 
-处理收集的原始数据：
+Process the collected raw data:
 
 ```bash
 python data_preprocessor.py
 ```
 
-这将生成：
-- 标准化的特征数据
-- 训练/验证/测试集分割
-- 数据统计信息和可视化
+This will generate:
+- Standardized feature data
+- Train/validation/test set splits
+- Data statistics and visualizations
 
-### 3. 模型训练
+### 3. Model Training
 
-选择模型架构进行训练：
+Choose model architecture for training:
 
 ```bash
-# 使用LSTM模型
+# Using LSTM model
 python -c "
 from trainer import HandGestureTrainer
 from data_preprocessor import HandGesturePreprocessor
 
-# 加载数据
+# Load data
 preprocessor = HandGesturePreprocessor()
 data_splits = preprocessor.load_processed_data('data/processed/processed_data_latest.pkl')
 
-# 创建训练器
+# Create trainer
 trainer = HandGestureTrainer(model_type='lstm')
 trainer.prepare_data(data_splits)
 trainer.build_model(hidden_dim=128, num_layers=2)
 trainer.setup_training(learning_rate=0.001)
 
-# 开始训练
+# Start training
 trainer.train(epochs=100)
 
-# 评估模型
+# Evaluate model
 results = trainer.evaluate()
 trainer.plot_training_history()
 "
 ```
 
-**支持的模型类型：**
-- `lstm`: LSTM循环神经网络
-- `gru`: GRU门控循环单元
-- `transformer`: Transformer注意力模型
-- `cnn_lstm`: CNN-LSTM混合模型
-- `attention_lstm`: 带注意力的LSTM
-- `resnet1d`: 1D残差网络
-- `multitask`: 多任务学习模型
+**Supported Model Types:**
+- `lstm`: LSTM Recurrent Neural Network
+- `gru`: GRU Gated Recurrent Unit
+- `transformer`: Transformer Attention Model
+- `cnn_lstm`: CNN-LSTM Hybrid Model
+- `attention_lstm`: LSTM with Attention Mechanism
+- `resnet1d`: 1D Residual Network
+- `multitask`: Multi-task Learning Model
 
-### 4. 实时推理
+### 4. Real-time Inference
 
-启动实时手语识别：
+Start real-time sign language recognition:
 
 ```bash
 python inference.py
 ```
 
-**快捷键：**
-- `q`: 退出程序
-- `s`: 保存预测历史
-- `c`: 清空预测历史
-- `h`: 显示帮助信息
+**Hotkeys:**
+- `q`: Quit the program
+- `s`: Save prediction history
+- `c`: Clear prediction history
+- `h`: Show help information
 
-## 模型性能对比
+## Model Performance Comparison
 
-| 模型类型 | 参数量 | 训练速度 | 准确率 | 推理速度 | 特点 |
-|---------|--------|----------|--------|----------|------|
-| LSTM | 中等 | 快 | 85-90% | 快 | 基础序列模型 |
-| GRU | 中等 | 快 | 85-88% | 快 | 更简单的LSTM |
-| Transformer | 高 | 慢 | 90-95% | 中等 | 注意力机制 |
-| CNN-LSTM | 中高 | 中等 | 88-92% | 中等 | 特征提取+序列 |
-| Attention-LSTM | 中高 | 中等 | 88-91% | 中等 | 带注意力LSTM |
-| ResNet1D | 中高 | 中等 | 87-90% | 中等 | 残差连接 |
-| MultiTask | 高 | 慢 | 90-93% | 慢 | 多任务学习 |
+| Model Type | Parameters | Training Speed | Accuracy | Inference Speed | Features |
+|-----------|------------|----------------|-----------|-----------------|----------|
+| LSTM | Medium | Fast | 85-90% | Fast | Basic sequence model |
+| GRU | Medium | Fast | 85-88% | Fast | Simpler LSTM |
+| Transformer | High | Slow | 90-95% | Medium | Attention mechanism |
+| CNN-LSTM | Medium-High | Medium | 88-92% | Medium | Feature extraction + sequence |
+| Attention-LSTM | Medium-High | Medium | 88-91% | Medium | LSTM with attention |
+| ResNet1D | Medium-High | Medium | 87-90% | Medium | Residual connections |
+| MultiTask | High | Slow | 90-93% | Slow | Multi-task learning |
 
-## 配置说明
+## Configuration Instructions
 
-### 数据收集配置
+### Data Collection Configuration
 
-在 `data_collector.py` 中修改：
+Modify in `data_collector.py`:
 
 ```python
-# 每个手势录制帧数
+# Frames per gesture recording
 max_frames_per_gesture = 60
 
-# 手势标签配置
+# Gesture label configuration
 gesture_labels = {
     "1": {"chinese": "你好", "english": "hello"},
-    # 添加更多手势...
+    # Add more gestures...
 }
 ```
 
-### 预处理配置
+### Preprocessing Configuration
 
-在 `data_preprocessor.py` 中修改：
+Modify in `data_preprocessor.py`:
 
 ```python
 feature_config = {
-    "sequence_length": 30,      # 序列长度
-    "palm_features": True,      # 是否包含手掌特征
-    "arm_features": True,       # 是否包含手臂特征
-    "digit_features": True,     # 是否包含手指特征
-    "velocity_features": True,  # 是否包含速度特征
-    "angle_features": True,     # 是否包含角度特征
-    "distance_features": True   # 是否包含距离特征
+    "sequence_length": 30,      # Sequence length
+    "palm_features": True,      # Include palm features
+    "arm_features": True,       # Include arm features
+    "digit_features": True,     # Include finger features
+    "velocity_features": True,  # Include velocity features
+    "angle_features": True,     # Include angle features
+    "distance_features": True   # Include distance features
 }
 ```
 
-### 训练配置
+### Training Configuration
 
-在训练时可以调整：
+Adjustable during training:
 
 ```python
-# 模型参数
+# Model parameters
 trainer.build_model(
-    hidden_dim=128,         # 隐藏层维度
-    num_layers=2,           # 层数
-    dropout=0.3,            # Dropout率
-    bidirectional=True      # 是否双向（LSTM/GRU）
+    hidden_dim=128,         # Hidden layer dimension
+    num_layers=2,           # Number of layers
+    dropout=0.3,            # Dropout rate
+    bidirectional=True      # Bidirectional (LSTM/GRU)
 )
 
-# 训练参数
+# Training parameters
 trainer.setup_training(
-    learning_rate=0.001,    # 学习率
-    optimizer_type="adam",  # 优化器类型
-    scheduler_type="cosine", # 学习率调度器
-    use_early_stopping=True, # 是否使用早停
-    patience=10             # 早停耐心值
+    learning_rate=0.001,    # Learning rate
+    optimizer_type="adam",  # Optimizer type
+    scheduler_type="cosine", # Learning rate scheduler
+    use_early_stopping=True, # Use early stopping
+    patience=10             # Early stopping patience
 )
 ```
 
-### 推理配置
+### Inference Configuration
 
-在 `inference.py` 中修改：
+Modify in `inference.py`:
 
 ```python
-# 手势缓冲器配置
+# Gesture buffer configuration
 gesture_buffer = GestureBuffer(
-    max_length=30,          # 最大缓冲长度
-    min_length=10,          # 最小预测长度
-    motion_threshold=0.1,   # 运动检测阈值
-    stillness_duration=1.0  # 静止持续时间
+    max_length=30,          # Maximum buffer length
+    min_length=10,          # Minimum prediction length
+    motion_threshold=0.1,   # Motion detection threshold
+    stillness_duration=1.0  # Stillness duration
 )
 
-# 置信度跟踪器配置
+# Confidence tracker configuration
 confidence_tracker = ConfidenceTracker(
-    window_size=5,          # 滑动窗口大小
-    threshold=0.7           # 置信度阈值
+    window_size=5,          # Sliding window size
+    threshold=0.7           # Confidence threshold
 )
 ```
 
-## 高级用法
+## Advanced Usage
 
-### 自定义模型
+### Custom Models
 
-创建自定义模型架构：
+Create custom model architectures:
 
 ```python
 import torch.nn as nn
@@ -241,19 +240,19 @@ from model_definition import ModelFactory
 class CustomModel(nn.Module):
     def __init__(self, input_dim, num_classes):
         super().__init__()
-        # 定义你的模型架构
+        # Define your model architecture
         
     def forward(self, x):
-        # 定义前向传播
+        # Define forward pass
         return output
 
-# 注册到工厂
+# Register to factory
 ModelFactory.register_model("custom", CustomModel)
 ```
 
-### 多任务训练
+### Multi-task Training
 
-训练多任务模型：
+Train multi-task models:
 
 ```python
 trainer = HandGestureTrainer(model_type="multitask")
@@ -266,22 +265,22 @@ trainer.build_model(
 trainer.train(epochs=100)
 ```
 
-### 数据增强
+### Data Augmentation
 
-在预处理阶段添加数据增强：
+Add data augmentation during preprocessing:
 
 ```python
-# 在data_preprocessor.py中添加
+# Add in data_preprocessor.py
 def augment_sequence(self, sequence):
-    # 时间扭曲
-    # 噪声添加
-    # 旋转变换
+    # Time warping
+    # Noise addition
+    # Rotation transformation
     return augmented_sequence
 ```
 
-### 模型融合
+### Model Ensemble
 
-使用多个模型进行集成预测：
+Use multiple models for ensemble prediction:
 
 ```python
 models = [
@@ -290,105 +289,103 @@ models = [
     load_model("best_cnn_lstm_model.pth")
 ]
 
-# 集成预测
+# Ensemble prediction
 ensemble_prediction = ensemble_predict(models, input_data)
 ```
 
-## 性能优化
+## Performance Optimization
 
-### 训练优化
+### Training Optimization
 
-1. **混合精度训练**：
+1. **Mixed Precision Training**:
 ```python
 from torch.cuda.amp import autocast, GradScaler
 
 scaler = GradScaler()
-# 在训练循环中使用autocast
+# Use autocast in training loop
 ```
 
-2. **学习率调度**：
+2. **Learning Rate Scheduling**:
 ```python
-# 使用余弦退火
+# Use cosine annealing
 scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=100)
 ```
 
-3. **梯度裁剪**：
+3. **Gradient Clipping**:
 ```python
 torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
 ```
 
-### 推理优化
+### Inference Optimization
 
-1. **模型量化**：
+1. **Model Quantization**:
 ```python
 quantized_model = torch.quantization.quantize_dynamic(
     model, {torch.nn.Linear}, dtype=torch.qint8
 )
 ```
 
-2. **批处理推理**：
+2. **Batch Inference**:
 ```python
-# 收集多个手势序列进行批量推理
+# Collect multiple gesture sequences for batch inference
 batch_predictions = model(batch_input)
 ```
 
-## 常见问题
+## Common Issues
 
-### Q1: Leap Motion设备无法连接
+### Q1: Leap Motion device cannot connect
 
-**解决方案：**
-1. 确保Leap Motion驱动已正确安装
-2. 检查USB连接是否稳定
-3. 重启Leap Motion服务
-4. 检查设备管理器中是否有未知设备
+**Solutions:**
+1. Ensure Leap Motion drivers are properly installed
+2. Check if USB connection is stable
+3. Restart Leap Motion service
+4. Check Device Manager for unknown devices
 
-### Q2: 训练过程中显存不足
+### Q2: Out of memory during training
 
-**解决方案：**
-1. 减少批处理大小
-2. 使用梯度累积
-3. 减少模型参数
-4. 使用混合精度训练
+**Solutions:**
+1. Reduce batch size
+2. Use gradient accumulation
+3. Reduce model parameters
+4. Use mixed precision training
 
-### Q3: 识别准确率低
+### Q3: Low recognition accuracy
 
-**解决方案：**
-1. 增加训练数据量
-2. 调整特征提取参数
-3. 尝试不同的模型架构
-4. 调整预处理超参数
-5. 使用数据增强技术
+**Solutions:**
+1. Increase training data volume
+2. Adjust feature extraction parameters
+3. Try different model architectures
+4. Adjust preprocessing hyperparameters
+5. Use data augmentation techniques
 
-### Q4: 语音播报不工作
+### Q4: Voice playback not working
 
-**解决方案：**
-1. 检查pyttsx3是否正确安装
-2. 确认系统有可用的TTS引擎
-3. 检查音频设备设置
-4. 尝试不同的语音引擎
+**Solutions:**
+1. Check if pyttsx3 is properly installed
+2. Confirm system has available TTS engine
+3. Check audio device settings
+4. Try different voice engines
 
-### Q5: 实时推理延迟高
+### Q5: High real-time inference latency
 
-**解决方案：**
-1. 使用GPU加速
-2. 减少模型复杂度
-3. 优化特征提取过程
-4. 使用模型量化
-5. 调整缓冲区大小
+**Solutions:**
+1. Use GPU acceleration
+2. Reduce model complexity
+3. Optimize feature extraction process
+4. Use model quantization
+5. Adjust buffer size
 
-## 相关资源
+## Related Resources
 
-- [Leap Motion开发者文档](https://developer.leapmotion.com/)
-- [PyTorch官方文档](https://pytorch.org/docs/)
-- [手语识别论文集](https://github.com/topics/sign-language-recognition)
-- [深度学习最佳实践](https://www.deeplearningbook.org/)
+- [Leap Motion Developer Documentation](https://developer.leapmotion.com/)
+- [PyTorch Official Documentation](https://pytorch.org/docs/)
+- [Sign Language Recognition Papers](https://github.com/topics/sign-language-recognition)
+- [Deep Learning Best Practices](https://www.deeplearningbook.org/)
 
-
-## 作者
+## Authors
   * yigeoooo
   * XXK
+
 ---
 
-**注意**: 本项目仅供学习和研究使用，商业用途请遵循相关许可证条款。
-
-
+**Note**: This project is for learning and research purposes only. Commercial use should comply with relevant license term
