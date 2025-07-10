@@ -387,7 +387,7 @@ class HandGesturePreprocessor:
 
         # 检查数据收集建议
         if valid_count < 10:
-            print("\n⚠️  数据不足警告:")
+            print("\n  数据不足警告:")
             print(f"   当前只有 {valid_count} 个有效样本")
             print("   建议:")
             print("   1. 每个手势至少收集 10-20 个样本")
@@ -703,18 +703,18 @@ class HandGesturePreprocessor:
             return
 
         print("\n" + "=" * 60)
-        print("📊 数据分布统计")
+        print(" 数据分布统计")
         print("=" * 60)
 
         # 总体统计
-        print(f"📈 总体信息:")
+        print(f" 总体信息:")
         print(f"   总样本数: {self.stats['total_samples']}")
         print(f"   序列长度: {self.stats['sequence_length']}")
         print(f"   特征维度: {self.stats['feature_dimension']}")
         print(f"   手势类别数: {self.stats['num_gesture_classes']}")
 
         # 手势分布
-        print(f"\n🤏 手势标签分布:")
+        print(f"\n手势标签分布:")
         gesture_dist = self.stats["class_distribution"]["gesture"]
         for label, count in sorted(gesture_dist.items()):
             percentage = (count / self.stats['total_samples']) * 100
@@ -722,7 +722,7 @@ class HandGesturePreprocessor:
             print(f"   {label:>3}: {count:>3} 样本 ({percentage:>5.1f}%) {bar}")
 
         # 中文含义分布
-        print(f"\n🈲 中文含义分布:")
+        print(f"\n中文含义分布:")
         chinese_dist = self.stats["class_distribution"]["chinese"]
         for label, count in sorted(chinese_dist.items()):
             percentage = (count / self.stats['total_samples']) * 100
@@ -744,22 +744,22 @@ class HandGesturePreprocessor:
             min_count = min(values)
             imbalance_ratio = max_count / min_count if min_count > 0 else float('inf')
 
-            print(f"\n⚖️  数据平衡性分析:")
+            print(f"\n数据平衡性分析:")
             print(f"   最多样本数: {max_count}")
             print(f"   最少样本数: {min_count}")
             print(f"   不平衡比率: {imbalance_ratio:.2f}")
 
             if imbalance_ratio > 3:
-                print("   ⚠️  数据不平衡较严重，建议收集更多少数类别的样本")
+                print("   数据不平衡较严重，建议收集更多少数类别的样本")
             elif imbalance_ratio > 2:
-                print("   ⚠️  数据存在轻微不平衡")
+                print("   数据存在轻微不平衡")
             else:
-                print("   ✅ 数据分布较为平衡")
+                print("   数据分布较为平衡")
 
         print("=" * 60)
 
         # 打印详细统计信息
-        print("\n📊 详细数据分布:")
+        print("\n详细数据分布:")
         print("-" * 50)
 
         print("手势标签分布:")
@@ -784,17 +784,17 @@ class HandGesturePreprocessor:
             min_count = min(values)
             imbalance_ratio = max_count / min_count if min_count > 0 else float('inf')
 
-            print(f"\n📈 数据平衡性分析:")
+            print(f"\n数据平衡性分析:")
             print(f"  最多样本数: {max_count}")
             print(f"  最少样本数: {min_count}")
             print(f"  不平衡比率: {imbalance_ratio:.2f}")
 
             if imbalance_ratio > 3:
-                print("  ⚠️  数据不平衡较严重，建议收集更多少数类别的样本")
+                print("  ⚠数据不平衡较严重，建议收集更多少数类别的样本")
             elif imbalance_ratio > 2:
-                print("  ⚠️  数据存在轻微不平衡")
+                print("  ⚠数据存在轻微不平衡")
             else:
-                print("  ✅ 数据分布较为平衡")
+                print("  数据分布较为平衡")
 
 
 def main():
@@ -811,22 +811,22 @@ def main():
         raw_data_files = [f for f in os.listdir(preprocessor.raw_data_dir) if f.endswith('.json')]
 
     if not raw_data_files:
-        print("❌ 没有找到原始数据文件")
-        print("\n📋 请先收集数据:")
+        print("没有找到原始数据文件")
+        print("\n请先收集数据:")
         print("1. 运行 data_collector.py")
         print("2. 按数字键(0-9)录制至少10个不同的手势")
         print("3. 每个手势建议录制5-10次")
         print("4. 然后再运行此预处理程序")
         return
 
-    print(f"✅ 找到 {len(raw_data_files)} 个原始数据文件")
+    print(f"找到 {len(raw_data_files)} 个原始数据文件")
 
     try:
         # 处理所有数据
         X, y_gesture, y_chinese, y_english = preprocessor.process_all_data()
 
         if len(X) == 0:
-            print("❌ 没有有效的数据可以处理")
+            print("没有有效的数据可以处理")
             return
 
         # 分割数据
@@ -845,36 +845,36 @@ def main():
             print("生成文本版数据分布...")
             preprocessor.print_text_distribution()
 
-        print(f"\n✅ 数据预处理完成!")
-        print(f"📊 数据统计:")
+        print(f"\n数据预处理完成!")
+        print(f" 数据统计:")
         print(f"   总样本数: {len(X)}")
         print(f"   序列长度: {X.shape[1]}")
         print(f"   特征维度: {X.shape[2]}")
         print(f"   手势类别: {len(preprocessor.label_encoder['gesture'])}")
 
-        print(f"\n📁 数据集划分:")
+        print(f"\n数据集划分:")
         print(f"   训练集: {data_splits['X_train'].shape[0]} 样本")
         if 'X_val' in data_splits:
             print(f"   验证集: {data_splits['X_val'].shape[0]} 样本")
         print(f"   测试集: {data_splits['X_test'].shape[0]} 样本")
 
-        print(f"\n💾 文件保存位置:")
+        print(f"\n文件保存位置:")
         print(f"   处理后数据: {save_path}")
         print(f"   数据分布图: {os.path.join(preprocessor.processed_data_dir, 'data_distribution.png')}")
 
-        print(f"\n🚀 下一步:")
+        print(f"\n下一步:")
         print("   现在可以运行 trainer.py 开始训练模型")
 
         if len(X) < 10:
-            print(f"\n⚠️  建议:")
+            print(f"\n⚠建议:")
             print("   当前数据量较少，建议:")
             print("   1. 收集更多训练数据 (每个手势至少10-20个样本)")
             print("   2. 增加手势类别的多样性")
             print("   3. 在不同条件下收集数据")
 
     except Exception as e:
-        print(f"❌ 数据预处理失败: {e}")
-        print(f"\n🔧 可能的解决方案:")
+        print(f"数据预处理失败: {e}")
+        print(f"\n可能的解决方案:")
         print("1. 检查原始数据文件是否完整")
         print("2. 确保至少有1个有效的手势数据")
         print("3. 检查数据文件格式是否正确")

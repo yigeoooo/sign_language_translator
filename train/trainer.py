@@ -564,15 +564,15 @@ class HandGestureTrainer:
                     print(f"  验证: Loss={val_metrics['val_loss']:.4f}, Acc={val_metrics['val_acc']:.4f}")
                 print(f"  学习率: {current_lr:.6f}")
                 if should_save:
-                    print(f"  💾 保存最佳模型 (准确率: {current_acc:.4f})")
+                    print(f"   保存最佳模型 (准确率: {current_acc:.4f})")
 
                 # 检查训练质量
                 if epoch > 10:
                     if train_metrics['train_acc'] > 0.95 and (not val_metrics or val_metrics.get('val_acc', 0) < 0.7):
                         print(
-                            f"  ⚠️ 可能过拟合：训练准确率{train_metrics['train_acc']:.3f}，验证准确率{val_metrics.get('val_acc', 0):.3f}")
+                            f"  可能过拟合：训练准确率{train_metrics['train_acc']:.3f}，验证准确率{val_metrics.get('val_acc', 0):.3f}")
                     elif train_metrics['train_acc'] < 0.6 and epoch > 50:
-                        print(f"  ⚠️ 训练困难：准确率仍然很低，考虑调整学习率或数据质量")
+                        print(f"   训练困难：准确率仍然很低，考虑调整学习率或数据质量")
 
                 print("-" * 30)
 
@@ -586,9 +586,9 @@ class HandGestureTrainer:
                 'best_acc': max(best_val_acc, best_train_acc),
                 'timestamp': datetime.now().strftime("%Y%m%d_%H%M%S")
             }, final_save_path)
-            print(f"✅ 最终模型已保存: {os.path.abspath(final_save_path)}")
+            print(f" 最终模型已保存: {os.path.abspath(final_save_path)}")
         except Exception as e:
-            print(f"❌ 最终模型保存失败: {e}")
+            print(f" 最终模型保存失败: {e}")
 
         total_time = time.time() - start_time
         final_best = max(best_val_acc, best_train_acc)
@@ -601,13 +601,13 @@ class HandGestureTrainer:
         try:
             saved_files = [f for f in os.listdir(self.save_dir) if f.endswith('.pth')]
             if saved_files:
-                print(f"\n📁 已保存的模型文件:")
+                print(f"\n 已保存的模型文件:")
                 for file in saved_files:
                     filepath = os.path.join(self.save_dir, file)
                     size = os.path.getsize(filepath) / (1024 * 1024)
                     print(f"   - {file} ({size:.2f} MB)")
             else:
-                print(f"⚠️  警告: 模型目录中没有找到保存的文件")
+                print(f"  警告: 模型目录中没有找到保存的文件")
         except Exception as e:
             print(f"无法列出保存的文件: {e}")
 
@@ -732,7 +732,7 @@ class HandGestureTrainer:
 
         try:
             torch.save(checkpoint, filepath)
-            print(f"✅ 模型已保存: {os.path.abspath(filepath)}")
+            print(f" 模型已保存: {os.path.abspath(filepath)}")
             print(f"   保存的配置: {model_config}")
 
             # 验证文件是否真的存在
@@ -741,15 +741,15 @@ class HandGestureTrainer:
                 print(f"   文件大小: {file_size:.2f} MB")
 
         except Exception as e:
-            print(f"❌ 模型保存失败: {e}")
+            print(f" 模型保存失败: {e}")
 
             # 尝试在当前目录保存
             try:
                 fallback_path = f"backup_{filename}"
                 torch.save(checkpoint, fallback_path)
-                print(f"✅ 备用保存成功: {os.path.abspath(fallback_path)}")
+                print(f" 备用保存成功: {os.path.abspath(fallback_path)}")
             except Exception as e2:
-                print(f"❌ 备用保存也失败: {e2}")
+                print(f" 备用保存也失败: {e2}")
 
     # ==================== 修复5: 快速修复脚本 ====================
 
@@ -760,12 +760,12 @@ class HandGestureTrainer:
 
         models_dir = "data/models"
         if not os.path.exists(models_dir):
-            print("❌ 模型目录不存在")
+            print(" 模型目录不存在")
             return
 
         model_files = [f for f in os.listdir(models_dir) if f.endswith('.pth')]
         if not model_files:
-            print("❌ 没有找到模型文件")
+            print(" 没有找到模型文件")
             return
 
         for model_file in model_files:
@@ -809,12 +809,12 @@ class HandGestureTrainer:
                     # 保存修复后的模型
                     fixed_path = model_path.replace('.pth', '_fixed.pth')
                     torch.save(checkpoint, fixed_path)
-                    print(f"✅ 修复后模型已保存: {fixed_path}")
+                    print(f" 修复后模型已保存: {fixed_path}")
                 else:
-                    print("✅ 模型已包含配置信息")
+                    print(" 模型已包含配置信息")
 
             except Exception as e:
-                print(f"❌ 处理失败: {e}")
+                print(f" 处理失败: {e}")
 
     def load_checkpoint(self, filepath: str):
         """加载检查点"""
@@ -839,14 +839,14 @@ class HandGestureTrainer:
         try:
             self.metrics_tracker.plot_history(save_path)
         except Exception as e:
-            print(f"❌ 训练历史图保存失败: {e}")
+            print(f" 训练历史图保存失败: {e}")
             # 尝试保存到当前目录
             try:
                 fallback_path = f"training_history_{self.model_type}.png"
                 self.metrics_tracker.plot_history(fallback_path)
-                print(f"✅ 训练历史图备用保存: {os.path.abspath(fallback_path)}")
+                print(f" 训练历史图备用保存: {os.path.abspath(fallback_path)}")
             except Exception as e2:
-                print(f"❌ 备用保存也失败: {e2}")
+                print(f" 备用保存也失败: {e2}")
 
 
 def main():
@@ -857,31 +857,31 @@ def main():
     # 1. 检查预处理数据文件
     data_dir = "data/processed"
     if not os.path.exists(data_dir):
-        print("❌ 找不到预处理数据目录")
+        print(" 找不到预处理数据目录")
         print("请先运行 data_preprocessor.py 生成预处理数据")
         return
 
     # 查找最新的预处理数据文件
     processed_files = [f for f in os.listdir(data_dir) if f.startswith("processed_data_") and f.endswith(".pkl")]
     if not processed_files:
-        print("❌ 找不到预处理数据文件")
+        print(" 找不到预处理数据文件")
         print("请先运行 data_preprocessor.py 生成预处理数据")
         return
 
     # 使用最新的数据文件
     latest_file = sorted(processed_files)[-1]
     data_path = os.path.join(data_dir, latest_file)
-    print(f"✅ 找到预处理数据文件: {latest_file}")
+    print(f" 找到预处理数据文件: {latest_file}")
 
     # 2. 加载预处理数据
     try:
         from data_preprocessor import HandGesturePreprocessor
         preprocessor = HandGesturePreprocessor()
         data_splits = preprocessor.load_processed_data(data_path)
-        print(f"✅ 数据加载成功")
+        print(f" 数据加载成功")
 
         # 显示数据统计
-        print(f"\n📊 数据统计:")
+        print(f"\n 数据统计:")
         print(f"   训练集: {data_splits['X_train'].shape[0]} 样本")
         if 'X_val' in data_splits:
             print(f"   验证集: {data_splits['X_val'].shape[0]} 样本")
@@ -889,28 +889,28 @@ def main():
         print(f"   特征维度: {data_splits['X_train'].shape[1]} × {data_splits['X_train'].shape[2]}")
 
     except Exception as e:
-        print(f"❌ 数据加载失败: {e}")
+        print(f" 数据加载失败: {e}")
         return
 
     # 3. 选择模型类型
     available_models = ["lstm", "gru", "transformer", "cnn_lstm", "attention_lstm", "resnet1d"]
-    print(f"\n🤖 可用的模型类型:")
+    print(f"\n 可用的模型类型:")
     for i, model in enumerate(available_models, 1):
         print(f"   {i}. {model}")
 
     # 这里可以自动选择或让用户选择
     model_type = "lstm"  # 默认使用LSTM，你可以修改这里
-    print(f"🎯 选择模型类型: {model_type}")
+    print(f" 选择模型类型: {model_type}")
 
     # 4. 创建训练器
     trainer = HandGestureTrainer(model_type=model_type)
 
     # 5. 准备数据
-    print(f"\n📦 准备数据...")
+    print(f"\n准备数据...")
     trainer.prepare_data(data_splits, batch_size=16, shuffle=True)
 
     # 6. 构建模型
-    print(f"\n🏗️  构建模型...")
+    print(f"\n🏗  构建模型...")
     if model_type == "lstm":
         trainer.build_model(
             hidden_dim=256,  # 增加模型容量
@@ -936,7 +936,7 @@ def main():
         trainer.build_model()  # 使用默认参数
 
     # 7. 设置训练参数
-    print(f"\n⚙️  设置训练参数...")
+    print(f"\n  设置训练参数...")
     trainer.setup_training(
         learning_rate=0.01,  # 提高学习率
         optimizer_type="adam",
@@ -947,21 +947,21 @@ def main():
     )
 
     # 8. 开始训练
-    print(f"\n🚀 开始训练...")
+    print(f"\n 开始训练...")
     epochs = 200  # 大幅增加训练轮数
     trainer.train(epochs=epochs, verbose=True)
 
     # 9. 评估模型
-    print(f"\n📊 评估模型...")
+    print(f"\n 评估模型...")
     test_results = trainer.evaluate()
 
-    print(f"\n✅ 训练完成!")
-    print(f"📈 最终测试结果:")
+    print(f"\n 训练完成!")
+    print(f" 最终测试结果:")
     print(f"   准确率: {test_results['accuracy']:.4f}")
     print(f"   平均损失: {test_results['avg_loss']:.4f}")
 
     # 10. 绘制训练历史
-    print(f"\n📊 生成训练历史图...")
+    print(f"\n 生成训练历史图...")
     trainer.plot_training_history()
 
     # 11. 保存最终统计
@@ -982,24 +982,24 @@ def main():
     try:
         with open(stats_file, 'w', encoding='utf-8') as f:
             json.dump(stats, f, ensure_ascii=False, indent=2)
-        print(f"✅ 训练统计已保存: {os.path.abspath(stats_file)}")
+        print(f" 训练统计已保存: {os.path.abspath(stats_file)}")
     except Exception as e:
-        print(f"❌ 统计保存失败: {e}")
+        print(f" 统计保存失败: {e}")
         # 尝试保存到当前目录
         try:
             fallback_stats = f"training_stats_{model_type}.json"
             with open(fallback_stats, 'w', encoding='utf-8') as f:
                 json.dump(stats, f, ensure_ascii=False, indent=2)
-            print(f"✅ 统计备用保存: {os.path.abspath(fallback_stats)}")
+            print(f" 统计备用保存: {os.path.abspath(fallback_stats)}")
         except Exception as e2:
-            print(f"❌ 备用统计保存失败: {e2}")
+            print(f" 备用统计保存失败: {e2}")
 
-    print(f"\n🎉 模型训练流程全部完成!")
-    print(f"📁 训练结果保存目录: {os.path.abspath(trainer.save_dir)}")
+    print(f"\n 模型训练流程全部完成!")
+    print(f" 训练结果保存目录: {os.path.abspath(trainer.save_dir)}")
 
     # 列出所有保存的文件
     try:
-        print(f"\n📋 生成的文件列表:")
+        print(f"\n 生成的文件列表:")
         all_files = []
 
         # 检查模型文件
@@ -1008,7 +1008,7 @@ def main():
             for file in model_files:
                 filepath = os.path.join(trainer.save_dir, file)
                 size = os.path.getsize(filepath) / (1024 * 1024)
-                print(f"   📄 {file} ({size:.2f} MB)")
+                print(f"    {file} ({size:.2f} MB)")
                 all_files.append(file)
 
         # 检查当前目录的备用文件
@@ -1017,10 +1017,10 @@ def main():
         for file in current_files:
             if file not in all_files:
                 size = os.path.getsize(file) / (1024 * 1024)
-                print(f"   📄 {file} ({size:.2f} MB) [当前目录]")
+                print(f"    {file} ({size:.2f} MB) [当前目录]")
 
         if not all_files and not current_files:
-            print("   ⚠️  没有找到保存的文件")
+            print("   ⚠  没有找到保存的文件")
 
     except Exception as e:
         print(f"无法列出文件: {e}")
@@ -1035,7 +1035,7 @@ def train_multiple_models():
     data_dir = "data/processed"
     processed_files = [f for f in os.listdir(data_dir) if f.startswith("processed_data_") and f.endswith(".pkl")]
     if not processed_files:
-        print("❌ 找不到预处理数据文件")
+        print(" 找不到预处理数据文件")
         return
 
     latest_file = sorted(processed_files)[-1]
@@ -1069,14 +1069,14 @@ def train_multiple_models():
                 'loss': test_results['avg_loss']
             }
 
-            print(f"✅ {model_type} 完成 - 准确率: {test_results['accuracy']:.4f}")
+            print(f" {model_type} 完成 - 准确率: {test_results['accuracy']:.4f}")
 
         except Exception as e:
-            print(f"❌ {model_type} 训练失败: {e}")
+            print(f" {model_type} 训练失败: {e}")
             results[model_type] = {'accuracy': 0.0, 'loss': float('inf')}
 
     # 显示对比结果
-    print(f"\n📊 模型对比结果:")
+    print(f"\n 模型对比结果:")
     print("-" * 60)
     print(f"{'模型类型':<15} {'准确率':<10} {'损失':<10}")
     print("-" * 60)
@@ -1084,10 +1084,10 @@ def train_multiple_models():
     best_model = max(results.keys(), key=lambda x: results[x]['accuracy'])
 
     for model_type, metrics in results.items():
-        marker = " 🏆" if model_type == best_model else ""
+        marker = " " if model_type == best_model else ""
         print(f"{model_type:<15} {metrics['accuracy']:<10.4f} {metrics['loss']:<10.4f}{marker}")
 
-    print(f"\n🏆 最佳模型: {best_model} (准确率: {results[best_model]['accuracy']:.4f})")
+    print(f"\n 最佳模型: {best_model} (准确率: {results[best_model]['accuracy']:.4f})")
 
 
 def quick_train():
@@ -1116,11 +1116,11 @@ def quick_train():
 
         # 评估
         results = trainer.evaluate()
-        print(f"\n✅ 快速训练完成!")
+        print(f"\n 快速训练完成!")
         print(f"准确率: {results['accuracy']:.4f}")
 
     except Exception as e:
-        print(f"❌ 快速训练失败: {e}")
+        print(f" 快速训练失败: {e}")
 
 
 if __name__ == "__main__":

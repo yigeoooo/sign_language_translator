@@ -80,7 +80,7 @@ class HandGestureInference:
 
     def _check_data_distribution(self):
         """检查训练数据分布"""
-        print("\n📊 训练数据分布检查:")
+        print("\n 训练数据分布检查:")
 
         if hasattr(self.preprocessor, 'label_decoder') and 'gesture' in self.preprocessor.label_decoder:
             gesture_decoder = self.preprocessor.label_decoder['gesture']
@@ -113,16 +113,16 @@ class HandGestureInference:
             print(f"    不平衡比率: {imbalance_ratio:.2f}")
 
             if imbalance_ratio > 5:
-                print(f"    ⚠️ 严重数据不平衡！某些类别样本过少可能导致识别偏向多数类别")
+                print(f"    严重数据不平衡！某些类别样本过少可能导致识别偏向多数类别")
             elif imbalance_ratio > 2:
-                print(f"    ⚠️ 轻微数据不平衡")
+                print(f"    轻微数据不平衡")
             else:
-                print(f"    ✅ 数据分布相对平衡")
+                print(f"    数据分布相对平衡")
 
         print("-" * 50)
 
     def _load_model(self, model_path: str):
-        """加载模型 - 修复版本，不依赖额外方法"""
+        """加载模型"""
         print(f"正在加载模型: {model_path}")
 
         checkpoint = torch.load(model_path, map_location=self.device, weights_only=False)
@@ -195,7 +195,7 @@ class HandGestureInference:
                 num_classes=num_classes,
                 **config
             )
-            print("✅ 模型创建成功")
+            print("模型创建成功")
 
         except Exception as e:
             print(f"使用推断配置创建模型失败: {e}")
@@ -205,7 +205,7 @@ class HandGestureInference:
         # 加载权重
         try:
             model.load_state_dict(checkpoint['model_state_dict'], strict=True)
-            print("✅ 模型权重严格加载成功")
+            print("模型权重严格加载成功")
         except RuntimeError as e:
             print(f"严格加载失败: {e}")
             print("尝试非严格加载...")
@@ -226,10 +226,10 @@ class HandGestureInference:
             critical_missing = [key for key in missing_keys
                                 if any(critical in key for critical in ['cnn', 'lstm', 'classifier'])]
             if critical_missing:
-                print(f"❌ 关键层参数缺失: {critical_missing}")
+                print(f"关键层参数缺失: {critical_missing}")
                 raise RuntimeError(f"无法加载模型，关键参数缺失")
 
-            print("⚠️ 部分参数加载成功，继续运行...")
+            print("部分参数加载成功，继续运行...")
 
         model.to(self.device)
         return model
@@ -379,16 +379,16 @@ class HandGestureInference:
                     prob_diff = abs(probs_np[0] - probs_np[1])
                     print(f"  两类概率差值: {prob_diff:.4f}")
                     if prob_diff < 0.2:
-                        print(f"    ⚠️ 两类概率很接近，模型不确定")
+                        print(f"    两类概率很接近，模型不确定")
                     elif prob_diff > 0.6:
-                        print(f"    ✅ 预测很确定")
+                        print(f"    预测很确定")
                     else:
-                        print(f"    🔶 预测较为确定")
+                        print(f"    预测较为确定")
 
                 # 检查概率分布是否正常
                 prob_std = np.std(probs_np)
                 if prob_std < 0.05:
-                    print(f"    ⚠️ 警告: 概率分布过于平均，模型可能没学到区别")
+                    print(f"    警告: 概率分布过于平均，模型可能没学到区别")
 
                 print(f"    概率标准差: {prob_std:.4f}")
 
@@ -467,7 +467,7 @@ class RealTimeGestureRecognizer:
                     self.successful_recognitions += 1
                     self.inference_engine.last_prediction_time = current_time
 
-                    print(f"\n✅ 识别成功!")
+                    print(f"\n 识别成功!")
                     print(f"手势: {result['gesture_label']}")
                     print(f"中文: {result['chinese_meaning']}")
                     print(f"英文: {result['english_meaning']}")
@@ -477,7 +477,7 @@ class RealTimeGestureRecognizer:
                     return result
                 else:
                     confidence_str = f"{result['confidence']:.3f}" if result else "无预测结果"
-                    print(f"❌ 识别失败: 置信度{confidence_str} (需要>0.4)")
+                    print(f" 识别失败: 置信度{confidence_str} (需要>0.4)")
 
                     # 显示备选预测
                     if result:
