@@ -21,9 +21,9 @@ def test_leap():
     # 1. 检查 SDK
     try:
         import leap
-        print("✅ Leap SDK 导入成功")
+        print("Leap SDK 导入成功")
     except ImportError as e:
-        print(f"❌ 无法导入 Leap SDK: {e}")
+        print(f"无法导入 Leap SDK: {e}")
         print("\n解决方法：")
         print("1. 安装 SDK: pip install leapc-python-bindings")
         print("2. 或使用模拟模式运行主程序")
@@ -37,11 +37,11 @@ def test_leap():
             self.events = []
 
         def on_connection_event(self, event):
-            print("  ✅ 收到连接事件")
+            print("收到连接事件")
             self.events.append('connection')
 
         def on_device_event(self, event):
-            print("  ✅ 收到设备事件")
+            print("收到设备事件")
             self.events.append('device')
             try:
                 with event.device.open():
@@ -52,7 +52,7 @@ def test_leap():
 
         def on_tracking_event(self, event):
             if 'tracking' not in self.events:
-                print("  ✅ 收到追踪事件")
+                print("收到追踪事件")
                 self.events.append('tracking')
             if event.hands:
                 print(f"     检测到 {len(event.hands)} 只手")
@@ -75,23 +75,23 @@ def test_leap():
                     print(f"  已收到事件: {listener.events}")
 
             if 'connection' in listener.events:
-                print("\n✅ 成功连接到 Leap Service")
+                print("\n成功连接到 Leap Service")
             else:
-                print("\n❌ 未能连接到 Leap Service")
+                print("\n未能连接到 Leap Service")
                 print("请确保 Ultraleap 服务正在运行")
 
             if 'device' in listener.events:
-                print("✅ 检测到 Leap Motion 设备")
+                print("检测到 Leap Motion 设备")
             else:
-                print("❌ 未检测到设备")
+                print("未检测到设备")
 
             if 'tracking' in listener.events:
-                print("✅ 正在接收追踪数据")
+                print("正在接收追踪数据")
             else:
-                print("⚠️  未收到追踪数据")
+                print("⚠未收到追踪数据")
 
     except Exception as e:
-        print(f"\n❌ 测试过程中出错: {e}")
+        print(f"\n测试过程中出错: {e}")
         return False
 
     print("\n测试完成！")
@@ -115,7 +115,7 @@ def test_simulation_mode():
         config.set('leap_motion.simulation_mode', True)
         config.save()
 
-        print("✅ 已启用模拟模式")
+        print("已启用模拟模式")
         print("\n现在可以运行主程序：")
         print("  python main.py")
         print("\n在模拟模式下：")
@@ -126,7 +126,7 @@ def test_simulation_mode():
         return True
 
     except Exception as e:
-        print(f"❌ 启用模拟模式失败: {e}")
+        print(f"启用模拟模式失败: {e}")
         return False
 
 
