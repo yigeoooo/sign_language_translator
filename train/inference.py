@@ -9,23 +9,28 @@ import time
 from typing import Dict, List, Optional
 from collections import deque
 from datetime import datetime
-
+import copy
 from model_definition import ModelFactory
 from data_preprocessor import HandGesturePreprocessor
 
 
 class GestureBuffer:
-    """手势数据缓冲器"""
-
-    def __init__(self, max_length: int = 30):
+    def __init__(self, max_length=30, no_hand_duration=1.0):
+        """
+        max_length: 每次采集的最大帧数
+        no_hand_duration: 连续检测不到手超过此秒数时结束采集
+        """
+        self.buffer = []
         self.max_length = max_length
-        self.buffer = deque(maxlen=max_length)
+        self.no_hand_duration = no_hand_duration
+        self.last_hand_time = None
         self.is_collecting = False
-        self.last_hand_time = 0
-        self.no_hand_duration = 1.0  # 没有手的持续时间
 
     def add_frame(self, frame_data: Dict) -> bool:
-        """添加帧数据，返回是否应该预测"""
+        """
+        添加一帧数据
+        return True 表示采集完成，可以触发推理
+        """
         current_time = time.time()
         has_hands = len(frame_data.get('hands', [])) > 0
 
@@ -35,25 +40,39 @@ class GestureBuffer:
                 self.is_collecting = True
                 self.buffer.clear()
                 print(f"开始收集手势数据...")
-            self.buffer.append(frame_data)
-            if len(self.buffer) % 5 == 0:  # 每5帧打印一次
-                print(f"收集中... {len(self.buffer)}/{self.max_length} 帧")
-        else:
-            if (self.is_collecting and
-                    current_time - self.last_hand_time > self.no_hand_duration and
-                    len(self.buffer) >= 10):
+            # ★ 深拷贝防止后续引用被修改为空
+            self.buffer.append(copy.deepcopy(frame_data))
+            print(f"收集中... {len(self.buffer)}/{self.max_length} 帧")
 
+            # ★ 达到最大帧数立刻结束收集
+            if len(self.buffer) >= self.max_length:
+                self.is_collecting = False
+                print(f"收集完成! 共收集 {len(self.buffer)} 帧，准备预测...")
+                return True
+
+        else:
+            # 没有手时，如果已经在采集中且超过 no_hand_duration 并且采集帧数足够，结束采集
+            if (self.is_collecting and
+                current_time - self.last_hand_time > self.no_hand_duration and
+                len(self.buffer) >= 10):
                 self.is_collecting = False
                 print(f"收集完成! 共收集 {len(self.buffer)} 帧，准备预测...")
                 return True
             elif self.is_collecting:
-                self.buffer.append(frame_data)
+                # 没有手，但采集中，仍然存入以保留时间轴信息
+                self.buffer.append(copy.deepcopy(frame_data))
                 print(f"手势结束，等待静止...")
 
         return False
 
     def get_sequence(self) -> List[Dict]:
-        return list(self.buffer)
+        """返回当前缓冲区的帧序列"""
+        return self.buffer
+
+    def clear(self):
+        """清空缓冲区"""
+        self.buffer.clear()
+        self.is_collecting = False
 
 
 class HandGestureInference:
@@ -313,26 +332,36 @@ class HandGestureInference:
         """预测手语"""
         print(f"开始预测，序列长度: {len(sequence_data)}")
 
-        if len(sequence_data) < 10:
-            print(f"序列太短: {len(sequence_data)} < 10")
+        # 过滤掉未检测到手的帧
+        valid_sequence = []
+        for i, frame in enumerate(sequence_data):
+            hands_count = len(frame.get('hands', []))
+            if hands_count > 0:
+                frame_features = self.extract_frame_features(frame)
+                non_zero_ratio = np.count_nonzero(frame_features) / frame_features.size
+                print(
+                    f"帧{i}: 检测到{hands_count}只手, 特征维度: {len(frame_features)}, 非零比例: {non_zero_ratio:.3f}")
+                valid_sequence.append(frame)
+            else:
+                print(f"帧{i}: 未检测到手，跳过")
+
+        # 检查有效帧数量
+        if len(valid_sequence) < 10:
+            print(f"有效帧不足（{len(valid_sequence)}/10），请重新录制")
             return None
 
         try:
-            # 提取特征序列
+            # 提取特征序列（仅用有效帧）
             features = []
-            for i, frame in enumerate(sequence_data):
+            for frame in valid_sequence:
                 frame_features = self.extract_frame_features(frame)
                 features.append(frame_features)
-                if i < 3:  # 只打印前3帧的信息
-                    hands_count = len(frame.get('hands', []))
-                    print(f"帧{i}: 检测到{hands_count}只手, 特征维度: {len(frame_features)}")
 
             # 标准化序列长度到30帧
             features = np.array(features)
             print(f"原始特征形状: {features.shape}")
 
             target_length = 30
-
             if len(features) < target_length:
                 padding = np.repeat(features[-1:], target_length - len(features), axis=0)
                 features = np.vstack([features, padding])
@@ -649,12 +678,18 @@ class GestureRecognitionListener(leap.Listener):
             # 构建帧数据
             frame_data = {'timestamp': time.time(), 'hands': []}
 
+            # 调试：打印 event.hands 数量
+            print(f"[DEBUG] event.hands 数量: {len(getattr(event, 'hands', []))}")
+
             # 提取手部数据
             if hasattr(event, 'hands') and event.hands:
                 for hand in event.hands:
                     hand_data = self._extract_hand_data(hand)
-                    if hand_data:
+                    if hand_data:  # 即使异常，也会返回合法结构
                         frame_data['hands'].append(hand_data)
+
+            # 调试：打印 frame_data['hands'] 数量
+            print(f"[DEBUG] frame_data.hands 数量: {len(frame_data['hands'])}")
 
             # 处理预测
             result = self.recognizer.process_prediction(frame_data)
@@ -665,9 +700,9 @@ class GestureRecognitionListener(leap.Listener):
             print(f"处理跟踪事件出错: {e}")
 
     def _extract_hand_data(self, hand):
-        """提取手部数据"""
+        """提取手部数据（保证返回合法结构，避免 None 导致丢失手）"""
         try:
-            return {
+            hand_data = {
                 "hand_type": "left" if hasattr(hand, 'type') and hand.type == leap.HandType.Left else "right",
                 "confidence": getattr(hand, 'confidence', 1.0),
                 "grab_strength": getattr(hand, 'grab_strength', 0.0),
@@ -690,9 +725,34 @@ class GestureRecognitionListener(leap.Listener):
                 },
                 "digits": self._extract_digits(hand)
             }
+            return hand_data
+
         except Exception as e:
             print(f"提取手部数据出错: {e}")
-            return None
+            # 返回一个空但合法的结构，避免 None 导致手部被忽略
+            return {
+                "hand_type": "right",
+                "confidence": 0.0,
+                "grab_strength": 0.0,
+                "grab_angle": 0.0,
+                "pinch_distance": 0.0,
+                "pinch_strength": 0.0,
+                "palm": {
+                    "position": [0.0, 0.0, 0.0],
+                    "direction": [0.0, 0.0, 0.0],
+                    "normal": [0.0, 0.0, 0.0],
+                    "velocity": [0.0, 0.0, 0.0],
+                    "width": 0.0
+                },
+                "arm": {
+                    "prev_joint": [0.0, 0.0, 0.0],
+                    "next_joint": [0.0, 0.0, 0.0],
+                    "direction": [0.0, 0.0, 0.0],
+                    "length": 0.0,
+                    "width": 0.0
+                },
+                "digits": []
+            }
 
     def _extract_digits(self, hand):
         """提取手指数据"""

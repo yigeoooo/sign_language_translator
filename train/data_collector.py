@@ -46,7 +46,8 @@ class HandGestureDataCollector:
 
         # 默认手势标签（可以根据需要修改）
         default_labels = {
-            "1": {"chinese": "1", "english": "one"},
+            "1": {"chinese": "再见", "english": "bye"},
+            "2": {"chinese": "好的", "english": "ok"},
         }
 
         if os.path.exists(labels_file) and os.path.getsize(labels_file) > 0:
