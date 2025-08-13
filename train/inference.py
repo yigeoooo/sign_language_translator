@@ -1,12 +1,10 @@
 import torch
 import torch.nn.functional as F
 import numpy as np
-import cv2
-import leap
 import json
 import os
 import time
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Callable
 from collections import deque
 from datetime import datetime
 import copy
@@ -44,7 +42,7 @@ class GestureBuffer:
             self.buffer.append(copy.deepcopy(frame_data))
             print(f"收集中... {len(self.buffer)}/{self.max_length} 帧")
 
-            # ★ 达到最大帧数立刻结束收集
+            # ★ 达到最大帧数立即结束收集
             if len(self.buffer) >= self.max_length:
                 self.is_collecting = False
                 print(f"收集完成! 共收集 {len(self.buffer)} 帧，准备预测...")
@@ -53,8 +51,8 @@ class GestureBuffer:
         else:
             # 没有手时，如果已经在采集中且超过 no_hand_duration 并且采集帧数足够，结束采集
             if (self.is_collecting and
-                current_time - self.last_hand_time > self.no_hand_duration and
-                len(self.buffer) >= 10):
+                    current_time - self.last_hand_time > self.no_hand_duration and
+                    len(self.buffer) >= 10):
                 self.is_collecting = False
                 print(f"收集完成! 共收集 {len(self.buffer)} 帧，准备预测...")
                 return True
@@ -454,16 +452,12 @@ class HandGestureInference:
             return None
 
 
-class RealTimeGestureRecognizer:
-    """实时手语识别器"""
+class GestureRecognitionCore:
+    """手语识别核心逻辑类"""
 
     def __init__(self, model_path: str, preprocessor_path: str):
         self.inference_engine = HandGestureInference(model_path, preprocessor_path)
         self.gesture_buffer = GestureBuffer()
-
-        # 界面设置
-        self.screen_size = [600, 800]
-        self.output_image = np.zeros((self.screen_size[0], self.screen_size[1], 3), np.uint8)
 
         # 识别状态
         self.current_result = None
@@ -474,6 +468,13 @@ class RealTimeGestureRecognizer:
         # 统计
         self.total_attempts = 0
         self.successful_recognitions = 0
+
+        # 状态更新回调
+        self.status_callback: Optional[Callable] = None
+
+    def set_status_callback(self, callback: Callable):
+        """设置状态更新回调函数"""
+        self.status_callback = callback
 
     def process_prediction(self, frame_data: Dict) -> Optional[Dict]:
         """处理预测"""
@@ -516,140 +517,6 @@ class RealTimeGestureRecognizer:
 
         return None
 
-    def render_interface(self, event):
-        """渲染界面"""
-        # 清空画布
-        self.output_image[:] = 0
-
-        # 标题
-        cv2.putText(self.output_image, "Sign Language Recognition",
-                    (20, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
-
-        # 统计信息
-        y = 80
-        success_rate = (self.successful_recognitions / max(1, self.total_attempts) * 100)
-        stats = [
-            f"Attempts: {self.total_attempts}",
-            f"Success: {self.successful_recognitions}",
-            f"Rate: {success_rate:.1f}%",
-            f"Buffer: {len(self.gesture_buffer.buffer)}/{self.gesture_buffer.max_length}"
-        ]
-
-        for stat in stats:
-            cv2.putText(self.output_image, stat, (20, y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
-            y += 25
-
-        # 状态显示区域
-        status_y = y + 20
-        status_height = 200
-
-        # 状态颜色
-        colors = {
-            "SUCCESS": (0, 255, 0),
-            "FAILED": (0, 0, 255),
-            "COLLECTING": (0, 255, 255),
-            "WAITING": (128, 128, 128)
-        }
-        color = colors.get(self.recognition_status, (128, 128, 128))
-
-        # 状态框
-        cv2.rectangle(self.output_image, (20, status_y), (self.screen_size[1] - 20, status_y + status_height), color, 2)
-
-        # 状态内容
-        if self.recognition_status == "SUCCESS" and self.current_result:
-            cv2.putText(self.output_image, "RECOGNITION SUCCESS!",
-                        (30, status_y + 40), cv2.FONT_HERSHEY_SIMPLEX, 0.8, color, 2)
-
-            cv2.putText(self.output_image, f"Gesture: {self.current_result['gesture_label']}",
-                        (30, status_y + 70), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
-
-            cv2.putText(self.output_image, f"Chinese: {self.current_result['chinese_meaning']}",
-                        (30, status_y + 100), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
-
-            cv2.putText(self.output_image, f"English: {self.current_result['english_meaning']}",
-                        (30, status_y + 130), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
-
-            cv2.putText(self.output_image, f"Confidence: {self.current_result['confidence']:.2f}",
-                        (30, status_y + 160), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
-
-        elif self.recognition_status == "FAILED":
-            cv2.putText(self.output_image, "RECOGNITION FAILED!",
-                        (30, status_y + 40), cv2.FONT_HERSHEY_SIMPLEX, 0.8, color, 2)
-            cv2.putText(self.output_image, "Try making a clearer gesture",
-                        (30, status_y + 80), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
-
-        elif self.recognition_status == "COLLECTING":
-            cv2.putText(self.output_image, "COLLECTING GESTURE...",
-                        (30, status_y + 40), cv2.FONT_HERSHEY_SIMPLEX, 0.8, color, 2)
-
-            # 进度条
-            progress = len(self.gesture_buffer.buffer) / self.gesture_buffer.max_length
-            bar_width = int((self.screen_size[1] - 60) * progress)
-            cv2.rectangle(self.output_image, (30, status_y + 70), (30 + bar_width, status_y + 90), (0, 255, 255), -1)
-            cv2.rectangle(self.output_image, (30, status_y + 70), (self.screen_size[1] - 30, status_y + 90),
-                          (255, 255, 255), 1)
-
-            cv2.putText(self.output_image, f"Progress: {progress * 100:.0f}%",
-                        (30, status_y + 110), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
-
-        else:  # WAITING
-            cv2.putText(self.output_image, "WAITING FOR GESTURE...",
-                        (30, status_y + 40), cv2.FONT_HERSHEY_SIMPLEX, 0.8, color, 2)
-            cv2.putText(self.output_image, "Place hand above sensor",
-                        (30, status_y + 80), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
-
-        # 绘制手部骨架
-        if hasattr(event, 'hands') and event.hands:
-            if self.recognition_status == "WAITING":
-                self.recognition_status = "COLLECTING"
-
-            for hand in event.hands:
-                self._draw_hand_skeleton(hand)
-        else:
-            # 状态转换逻辑
-            current_time = time.time()
-            if (self.recognition_status in ["SUCCESS", "FAILED"] and
-                    current_time - self.result_start_time > self.result_display_time):
-                self.recognition_status = "WAITING"
-                self.current_result = None
-
-        # 控制说明
-        cv2.putText(self.output_image, "Press 'q' to quit",
-                    (20, self.screen_size[0] - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 1)
-
-    def _draw_hand_skeleton(self, hand):
-        """绘制手部骨架"""
-        try:
-            # 手臂
-            wrist = self._get_joint_position(hand.arm.next_joint)
-            elbow = self._get_joint_position(hand.arm.prev_joint)
-
-            if wrist and elbow:
-                cv2.line(self.output_image, wrist, elbow, (255, 255, 255), 2)
-                cv2.circle(self.output_image, wrist, 4, (255, 255, 255), -1)
-                cv2.circle(self.output_image, elbow, 4, (255, 255, 255), -1)
-
-            # 手指
-            for digit in hand.digits:
-                for bone in digit.bones:
-                    start = self._get_joint_position(bone.prev_joint)
-                    end = self._get_joint_position(bone.next_joint)
-
-                    if start and end:
-                        cv2.line(self.output_image, start, end, (255, 255, 255), 2)
-                        cv2.circle(self.output_image, start, 3, (255, 255, 255), -1)
-                        cv2.circle(self.output_image, end, 3, (255, 255, 255), -1)
-        except:
-            pass
-
-    def _get_joint_position(self, joint):
-        """获取关节屏幕位置"""
-        if joint:
-            x = int(joint.x + (self.screen_size[1] / 2))
-            y = int(joint.z + (self.screen_size[0] / 2))
-            return (x, y)
-        return None
-
     def update_result(self, result):
         """更新识别结果"""
         if result:
@@ -660,227 +527,40 @@ class RealTimeGestureRecognizer:
                 self.current_result = result
             self.result_start_time = time.time()
 
+            # 调用状态更新回调
+            if self.status_callback:
+                self.status_callback(self.recognition_status, result)
 
-class GestureRecognitionListener(leap.Listener):
-    """Leap Motion监听器"""
+    def update_collecting_status(self, has_hands: bool):
+        """更新采集状态"""
+        current_time = time.time()
 
-    def __init__(self, recognizer: RealTimeGestureRecognizer):
-        self.recognizer = recognizer
+        if has_hands and self.recognition_status == "WAITING":
+            self.recognition_status = "COLLECTING"
+            if self.status_callback:
+                self.status_callback(self.recognition_status, None)
+        elif (self.recognition_status in ["SUCCESS", "FAILED"] and
+              current_time - self.result_start_time > self.result_display_time):
+            self.recognition_status = "WAITING"
+            self.current_result = None
+            if self.status_callback:
+                self.status_callback(self.recognition_status, None)
 
-    def on_connection_event(self, event):
-        print("Leap Motion连接成功")
+    def get_stats(self) -> Dict:
+        """获取统计信息"""
+        success_rate = (self.successful_recognitions / max(1, self.total_attempts) * 100)
+        return {
+            'total_attempts': self.total_attempts,
+            'successful_recognitions': self.successful_recognitions,
+            'success_rate': success_rate,
+            'buffer_length': len(self.gesture_buffer.buffer),
+            'max_buffer_length': self.gesture_buffer.max_length
+        }
 
-    def on_tracking_event(self, event):
-        try:
-            # 渲染界面
-            self.recognizer.render_interface(event)
-
-            # 构建帧数据
-            frame_data = {'timestamp': time.time(), 'hands': []}
-
-            # 调试：打印 event.hands 数量
-            print(f"[DEBUG] event.hands 数量: {len(getattr(event, 'hands', []))}")
-
-            # 提取手部数据
-            if hasattr(event, 'hands') and event.hands:
-                for hand in event.hands:
-                    hand_data = self._extract_hand_data(hand)
-                    if hand_data:  # 即使异常，也会返回合法结构
-                        frame_data['hands'].append(hand_data)
-
-            # 调试：打印 frame_data['hands'] 数量
-            print(f"[DEBUG] frame_data.hands 数量: {len(frame_data['hands'])}")
-
-            # 处理预测
-            result = self.recognizer.process_prediction(frame_data)
-            if result:
-                self.recognizer.update_result(result)
-
-        except Exception as e:
-            print(f"处理跟踪事件出错: {e}")
-
-    def _extract_hand_data(self, hand):
-        """提取手部数据（保证返回合法结构，避免 None 导致丢失手）"""
-        try:
-            hand_data = {
-                "hand_type": "left" if hasattr(hand, 'type') and hand.type == leap.HandType.Left else "right",
-                "confidence": getattr(hand, 'confidence', 1.0),
-                "grab_strength": getattr(hand, 'grab_strength', 0.0),
-                "grab_angle": getattr(hand, 'grab_angle', 0.0),
-                "pinch_distance": getattr(hand, 'pinch_distance', 0.0),
-                "pinch_strength": getattr(hand, 'pinch_strength', 0.0),
-                "palm": {
-                    "position": self._get_vector3(getattr(getattr(hand, 'palm', None), 'position', None)),
-                    "direction": self._get_vector3(getattr(getattr(hand, 'palm', None), 'direction', None)),
-                    "normal": self._get_vector3(getattr(getattr(hand, 'palm', None), 'normal', None)),
-                    "velocity": self._get_vector3(getattr(getattr(hand, 'palm', None), 'velocity', None)),
-                    "width": getattr(getattr(hand, 'palm', None), 'width', 0.0)
-                },
-                "arm": {
-                    "prev_joint": self._get_vector3(getattr(getattr(hand, 'arm', None), 'prev_joint', None)),
-                    "next_joint": self._get_vector3(getattr(getattr(hand, 'arm', None), 'next_joint', None)),
-                    "direction": self._get_vector3(getattr(getattr(hand, 'arm', None), 'direction', None)),
-                    "length": getattr(getattr(hand, 'arm', None), 'length', 0.0),
-                    "width": getattr(getattr(hand, 'arm', None), 'width', 0.0)
-                },
-                "digits": self._extract_digits(hand)
-            }
-            return hand_data
-
-        except Exception as e:
-            print(f"提取手部数据出错: {e}")
-            # 返回一个空但合法的结构，避免 None 导致手部被忽略
-            return {
-                "hand_type": "right",
-                "confidence": 0.0,
-                "grab_strength": 0.0,
-                "grab_angle": 0.0,
-                "pinch_distance": 0.0,
-                "pinch_strength": 0.0,
-                "palm": {
-                    "position": [0.0, 0.0, 0.0],
-                    "direction": [0.0, 0.0, 0.0],
-                    "normal": [0.0, 0.0, 0.0],
-                    "velocity": [0.0, 0.0, 0.0],
-                    "width": 0.0
-                },
-                "arm": {
-                    "prev_joint": [0.0, 0.0, 0.0],
-                    "next_joint": [0.0, 0.0, 0.0],
-                    "direction": [0.0, 0.0, 0.0],
-                    "length": 0.0,
-                    "width": 0.0
-                },
-                "digits": []
-            }
-
-    def _extract_digits(self, hand):
-        """提取手指数据"""
-        digits = []
-        try:
-            if hasattr(hand, 'digits') and hand.digits:
-                for digit_idx in range(min(5, len(hand.digits))):
-                    digit = hand.digits[digit_idx]
-                    digit_data = {
-                        "digit_type": digit_idx,
-                        "is_extended": getattr(digit, 'is_extended', True),
-                        "bones": []
-                    }
-
-                    if hasattr(digit, 'bones') and digit.bones:
-                        for bone_idx in range(min(4, len(digit.bones))):
-                            bone = digit.bones[bone_idx]
-                            bone_data = {
-                                "bone_type": bone_idx,
-                                "prev_joint": self._get_vector3(getattr(bone, 'prev_joint', None)),
-                                "next_joint": self._get_vector3(getattr(bone, 'next_joint', None)),
-                                "direction": self._get_vector3(getattr(bone, 'direction', None)),
-                                "length": getattr(bone, 'length', 0.0),
-                                "width": getattr(bone, 'width', 0.0)
-                            }
-                            digit_data["bones"].append(bone_data)
-
-                    # 补齐4个骨骼
-                    while len(digit_data["bones"]) < 4:
-                        digit_data["bones"].append({
-                            "bone_type": len(digit_data["bones"]),
-                            "prev_joint": [0.0, 0.0, 0.0],
-                            "next_joint": [0.0, 0.0, 0.0],
-                            "direction": [0.0, 0.0, 0.0],
-                            "length": 0.0,
-                            "width": 0.0
-                        })
-
-                    digits.append(digit_data)
-
-            # 补齐5个手指
-            while len(digits) < 5:
-                digits.append({
-                    "digit_type": len(digits),
-                    "is_extended": True,
-                    "bones": [{
-                        "bone_type": i,
-                        "prev_joint": [0.0, 0.0, 0.0],
-                        "next_joint": [0.0, 0.0, 0.0],
-                        "direction": [0.0, 0.0, 0.0],
-                        "length": 0.0,
-                        "width": 0.0
-                    } for i in range(4)]
-                })
-
-        except Exception as e:
-            print(f"提取手指数据出错: {e}")
-
-        return digits
-
-    def _get_vector3(self, vector):
-        """安全获取3D向量"""
-        if vector is None:
-            return [0.0, 0.0, 0.0]
-        try:
-            if hasattr(vector, 'x') and hasattr(vector, 'y') and hasattr(vector, 'z'):
-                return [float(vector.x), float(vector.y), float(vector.z)]
-        except:
-            pass
-        return [0.0, 0.0, 0.0]
-
-
-def main():
-    """主函数"""
-    print("启动手语识别系统")
-    print("=" * 30)
-
-    # 查找文件
-    models_dir = "data/models"
-    processed_dir = "data/processed"
-
-    model_path = None
-    if os.path.exists(models_dir):
-        model_files = [f for f in os.listdir(models_dir) if f.endswith('.pth')]
-        if model_files:
-            model_path = os.path.join(models_dir, model_files[0])
-
-    preprocessor_path = None
-    if os.path.exists(processed_dir):
-        processed_files = [f for f in os.listdir(processed_dir) if f.endswith('.pkl')]
-        if processed_files:
-            preprocessor_path = os.path.join(processed_dir, sorted(processed_files)[-1])
-
-    if not model_path or not preprocessor_path:
-        print("缺少模型或数据文件，请先运行训练流程")
-        return
-
-    print(f"模型: {os.path.basename(model_path)}")
-    print(f"数据: {os.path.basename(preprocessor_path)}")
-
-    try:
-        # 创建识别器
-        recognizer = RealTimeGestureRecognizer(model_path, preprocessor_path)
-        listener = GestureRecognitionListener(recognizer)
-
-        connection = leap.Connection()
-        connection.add_listener(listener)
-
-        print("系统启动成功! 按'q'退出")
-
-        with connection.open():
-            connection.set_tracking_mode(leap.TrackingMode.Desktop)
-
-            while True:
-                cv2.imshow("Sign Language Recognition", recognizer.output_image)
-                if cv2.waitKey(1) & 0xFF == ord('q'):
-                    break
-
-        cv2.destroyAllWindows()
-
-        # 显示统计
-        print(f"\n统计: 尝试{recognizer.total_attempts}次, "
-              f"成功{recognizer.successful_recognitions}次, "
-              f"成功率{(recognizer.successful_recognitions / max(1, recognizer.total_attempts) * 100):.1f}%")
-
-    except Exception as e:
-        print(f"启动失败: {e}")
-
-
-if __name__ == "__main__":
-    main()
+    def get_current_status(self) -> Dict:
+        """获取当前状态"""
+        return {
+            'status': self.recognition_status,
+            'result': self.current_result,
+            'stats': self.get_stats()
+        }
